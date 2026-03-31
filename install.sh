@@ -1,115 +1,89 @@
 #!/bin/bash
 
 trap "echo ''; echo '🛑 Script interrupted safely. SSH is still alive.'; exit 0" SIGINT
-set -e
+
+RED='\033[1;31m'
+DARK_RED='\033[0;31m'
+WHITE='\033[1;37m'
+RESET='\033[0m'
+
+# -------- BIG LOGO --------
+show_logo() {
+clear
+echo -e "${RED}"
+cat << "EOF"
+███████╗███████╗███╗   ██╗██╗████████╗██╗  ██╗
+╚══███╔╝██╔════╝████╗  ██║██║╚══██╔══╝██║  ██║
+  ███╔╝ █████╗  ██╔██╗ ██║██║   ██║   ███████║
+ ███╔╝  ██╔══╝  ██║╚██╗██║██║   ██║   ██╔══██║
+███████╗███████╗██║ ╚████║██║   ██║   ██║  ██║
+╚══════╝╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚═╝  ╚═╝
+EOF
+echo -e "${RESET}"
+
+echo -e "${WHITE}        ⚡ Z E N I T H   C L O U D ⚡${RESET}"
+echo -e "${DARK_RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "${WHITE}        Owner: ANSH 👑 | Full Control Panel${RESET}"
+echo ""
+}
 
 # -------- FUNCTIONS --------
 
 update_system() {
-    echo "🔄 Updating system..."
+    echo -e "${RED}⚙️ Updating system...${RESET}"
     apt update && apt upgrade -y && apt dist-upgrade -y
-
-    echo "📦 Installing required packages..."
-    apt install -y curl wget git unzip tar sudo neofetch software-properties-common ca-certificates lsb-release apt-transport-https
-}
-
-install_motd() {
-    echo "🎨 Installing Zenith MOTD..."
-
-    chmod -x /etc/update-motd.d/* 2>/dev/null || true
-
-    cat << 'EOF' > /etc/update-motd.d/00-zenithcloud
-#!/bin/bash
-echo "🚀 Zenith Cloud Ready ⚡"
-EOF
-
-    chmod +x /etc/update-motd.d/00-zenithcloud
 }
 
 install_panel() {
-    echo "⚙️ Installing Pterodactyl Panel..."
+    echo -e "${RED}🚀 Installing Panel...${RESET}"
     bash <(curl -s https://pterodactyl-installer.se)
 }
 
 update_wings() {
-    echo "🦅 Updating Wings..."
+    echo -e "${RED}🦅 Updating Wings...${RESET}"
     systemctl stop wings
-
     curl -L -o /usr/local/bin/wings "https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")"
-
     chmod u+x /usr/local/bin/wings
     systemctl restart wings
 }
 
 update_panel() {
-    echo "📦 Updating Panel..."
-
+    echo -e "${RED}📦 Updating Panel...${RESET}"
     cd /var/www/pterodactyl || return
-
     php artisan down
-
     curl -L https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz | tar -xzv
-
-    chmod -R 755 storage/* bootstrap/cache
-
     composer install --no-dev --optimize-autoloader
-
-    php artisan view:clear
-    php artisan config:clear
-    php artisan migrate --seed --force
-
-    chown -R www-data:www-data /var/www/pterodactyl/*
-    php artisan queue:restart
     php artisan up
-
-    systemctl restart nginx
-    systemctl restart redis
-    systemctl restart mysql
 }
 
-# -------- MAIN MENU LOOP --------
+# -------- MENU --------
 
 while true; do
-    clear
-    echo "========================================"
-    echo "   🚀 Zenith Cloud™ Ultimate Manager"
-    echo "========================================"
-    echo ""
-    echo "1️⃣  Update System & Install Packages"
-    echo "2️⃣  Install Zenith MOTD"
-    echo "3️⃣  Install Pterodactyl Panel"
-    echo "4️⃣  Update Wings"
-    echo "5️⃣  Update Panel"
-    echo "0️⃣  Exit"
+    show_logo
+
+    echo -e "${RED}[1]${WHITE} 🔄 Update System"
+    echo -e "${RED}[2]${WHITE} ⚙️ Install Panel"
+    echo -e "${RED}[3]${WHITE} 🦅 Update Wings"
+    echo -e "${RED}[4]${WHITE} 📦 Update Panel"
+    echo -e "${RED}[0]${WHITE} ❌ Exit"
     echo ""
 
-    read -p "👉 Choose an option: " choice
+    read -p "👉 Choose option: " choice
 
     case $choice in
-        1)
-            update_system
-            ;;
-        2)
-            install_motd
-            ;;
-        3)
-            install_panel
-            ;;
-        4)
-            update_wings
-            ;;
-        5)
-            update_panel
-            ;;
+        1) update_system ;;
+        2) install_panel ;;
+        3) update_wings ;;
+        4) update_panel ;;
         0)
-            echo "👋 Exiting Zenith Manager..."
-            exit 0
+            echo -e "${RED}👋 Exiting Zenith Cloud...${RESET}"
+            break
             ;;
         *)
-            echo "❌ Invalid option!"
+            echo -e "${DARK_RED}❌ Invalid option${RESET}"
             ;;
     esac
 
     echo ""
-    read -p "⏎ Press Enter to return to menu..."
+    read -p "⏎ Press Enter to continue..."
 done
